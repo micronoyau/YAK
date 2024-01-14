@@ -1,10 +1,10 @@
 all: build run
 
 build:
-	nasm -f bin loop.s -o loop
+	nasm -f bin boot.s -o boot.bin
 
 run: build
-	qemu-system-x86_64 -drive file=loop,format=raw
+	qemu-system-x86_64 -drive file=boot.bin,format=raw
 
 debug: build
-	qemu-system-x86_64 -drive file=loop,format=raw -S -gdb tcp::1234
+	qemu-system-x86_64 -drive file=boot.bin,format=raw -S -gdb tcp::1234
