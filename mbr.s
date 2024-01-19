@@ -205,11 +205,11 @@ section .boot
             mov ds, ax
             mov ss, ax
 
+        ; Jump to kernel
         jmp 0x7e00
-        ; TODO : give control to kernel
+
         loop_main:
             jmp loop_main
-
 
     ; Data
     str_welcome:
@@ -261,6 +261,3 @@ section .boot
     times 510-($-$$) db 0x90 ; Sector is 512 bytes long
     dw 0xaa55 ; End of sector needs magic bytes 55, aa
 
-; Fill with As for now
-section .kernel:
-    times 512 db 0x90
