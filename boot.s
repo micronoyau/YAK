@@ -76,18 +76,18 @@ section .boot
 
     ; Test if A20 is enabled. Returns 0 if it is, else 1.
     test_a20:
-        ; Set extra segment register to zero
+        ; Set data segment register to zero
         xor ax, ax
-        mov es, ax
-
-        ; Set data segment register to 0xffff
-        not ax
         mov ds, ax
 
+        ; Set extra segment register to 0xffff
+        not ax
+        mov es, ax
+
         mov si, 0x7c00 + 510
-        mov ax, word [es:si] ; Should fetch magic number 0xaa55
+        mov ax, word [ds:si] ; Should fetch magic number 0xaa55
         mov di, 0x7c00 + 0x100000 + 510 - 0xffff0
-        mov bx, word [ds:di] ; Is it still the magic number ?
+        mov bx, word [es:di] ; Is it still the magic number ?
 
         cmp ax, bx
         je print_A20_disabled
