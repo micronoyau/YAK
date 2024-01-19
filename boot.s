@@ -16,6 +16,13 @@
 org 0x7c00
 
 section .boot
+    ; First initialize segment registers
+    jmp 0x00:0x7c05 ; Set cs = 0
+    xor ax, ax
+    mov ds, ax
+    mov ss, ax
+    mov es, ax
+
     jmp main
 
     ; Args : string
@@ -160,15 +167,6 @@ section .boot
 
     ; Main procedure
     main:
-        ; First initialize segment registers and stack
-        xor ax, ax
-        ; mov ds, ax
-        ; mov cs, ax
-        ; mov ss, ax
-        ; mov es, ax
-        ; mov sp, 0x7000 ; Stack has space 0x500 -> 0x7000
-        ; mov bp, sp
-
         push dx ; Drive number
 
         push str_welcome
