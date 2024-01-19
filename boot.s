@@ -1,12 +1,15 @@
 ; Single-stage bootlader that simply :
+; + Loads kernel (stub kernel for now)
 ; + Checks A20 is enabled
 ; + Loads a trivial GDT with a code segment descriptor and a data segment descriptor.
 ;   For now, code and data are in the same place (I'll see later how to properly organize segments)
 ;  + Switches to protected mode
 
 ; Doc :
+; + https://wiki.osdev.org/Bootloader
 ; + http://www.osdever.net/tutorials/view/the-world-of-protected-mode
 ; + https://wiki.osdev.org/Protected_mode
+; + https://wiki.osdev.org/Disk_access_using_the_BIOS_(INT_13h)
 
 ; The BIOS has its own IVT (Interupt Vector Table) and BDA (BIOS data area)
 ; The system therefore boots at address 0x7c00
@@ -15,16 +18,17 @@ org 0x7c00
 section .boot
     jmp main
 
-    ; Args : string (ax)
+    ; Args : string
     strlen:
         push bp
+        mov bp, sp
         push si
 
         xor cx, cx
-        mov si, ax
+        mov si, [bp+0x4]
 
         strlen_loop:
-            mov dl, byte [es:si]
+            mov dl, byte [ds:si] ; ds should be 0
             cmp dl, 0
             jz strlen_end
             inc cx
@@ -35,16 +39,17 @@ section .boot
             mov ax, cx
             pop si
             pop bp
-            ret
+            ret 2
 
 
-    ; Clears screen and displays string using BIOS interrupts 
-    ; Args : string (ax)
+    ; Clears screen and displays string using BIOS interrupts
+    ; Args : string
     print_wait:
-        ; Set string as argument
-        mov bp, ax
+        push bp
+        mov bp, sp
 
         ; Clear screen
+        mov bp, [bp+0x4]
         mov ah, 0x07    ; Scroll down window
         mov al, 0       ; Entire window
         mov bh, 0x0f    ; Attributes (colour)
@@ -54,10 +59,13 @@ section .boot
 
         ; Display string
         ; First compute length of string
-        mov ax, bp
+        mov bp, sp
+        mov ax, [bp+0x4]
+        push ax
         call strlen
         mov cx, ax
 
+        mov bp, [bp+0x4] ; The string to display
         mov ah, 0x13    ; Display string
         mov al, 1       ; Update cursor after writing
         mov bh, 0       ; Page number
@@ -71,11 +79,19 @@ section .boot
         xor dx, dx
         int 0x15
 
-        ret
+        pop bp
+        ret 2
 
 
     ; Test if A20 is enabled. Returns 0 if it is, else 1.
     test_a20:
+        push bp
+        mov bp, sp
+        push di
+        push si
+        push ds
+        push es
+
         ; Set data segment register to zero
         xor ax, ax
         mov ds, ax
@@ -88,23 +104,28 @@ section .boot
         mov ax, word [ds:si] ; Should fetch magic number 0xaa55
         mov di, 0x7c00 + 0x100000 + 510 - 0xffff0
         mov bx, word [es:di] ; Is it still the magic number ?
+        pop es ; Restore es (we will need it for int 0x13)
 
         cmp ax, bx
         je print_A20_disabled
 
         ; Sucess
-        mov ax, str_A20_enabled
+        push str_A20_enabled
         call print_wait
         mov ax, 0
         jmp test_a20_end
 
         ; Fail
         print_A20_disabled:
-            mov ax, str_A20_disabled
+            push str_A20_disabled
             call print_wait
             mov ax, 1
 
         test_a20_end:
+            pop ds
+            pop si
+            pop di
+            pop bp
             ret
 
 
@@ -114,23 +135,61 @@ section .boot
         ret
 
 
+    ; Load kernel from disk using CHS addressing
+    ; Arg : drive number
+    load_kernel:
+        push bp
+        mov bp, sp
+        push es
+
+        xor ax, ax
+        mov es, ax
+        mov ah, 2 ; CHS reading
+        mov al, 1 ; We want to read 1 sector
+        mov ch, 0 ; First cylinder
+        mov cl, 2 ; Second sector (starts from 1)
+        mov dx, [bp+0x4] ; dl = Drive number
+        mov dh, 0 ; Head=0
+        mov bx, 0x7e00 ; Store kernel at address es:bx -> 0x7e00 -> 0x7fff
+        int 0x13
+
+        pop es
+        pop bp
+        ret 2
+
+
     ; Main procedure
     main:
-        mov ax, str_welcome
+        ; First initialize segment registers and stack
+        xor ax, ax
+        ; mov ds, ax
+        ; mov cs, ax
+        ; mov ss, ax
+        ; mov es, ax
+        ; mov sp, 0x7000 ; Stack has space 0x500 -> 0x7000
+        ; mov bp, sp
+
+        push dx ; Drive number
+
+        push str_welcome
         call print_wait
+
+        push str_loading_kernel
+        call print_wait
+        call load_kernel
 
         call test_a20
         cmp ax, 0
         jne loop_main
 
-        mov ax, str_setting_up_gdt
+        push str_setting_up_gdt
         call print_wait
         cli ; Disable interrupts
         call setup_gdt
         sti ; Enable again
 
         ; Set cr0 protected mode bit to 1
-        mov ax, str_launching_protected_mode
+        push str_launching_protected_mode
         call print_wait
         cli
         mov eax, cr0
@@ -141,12 +200,14 @@ section .boot
         ; Which in turns enables protected-mode adressing using GDT and stuff
         jmp 0x08:main_0
 
+        [BITS 32]
         main_0:
             ; Setup data segment and stack segment
             mov ax, 0x10
             mov ds, ax
             mov ss, ax
 
+        jmp 0x7e00
         ; TODO : give control to kernel
         loop_main:
             jmp loop_main
@@ -155,6 +216,9 @@ section .boot
     ; Data
     str_welcome:
         db "Welcome to the best bootloader ever, my friend!", 0
+
+    str_loading_kernel:
+        db "Loading kernel...", 0
 
     str_A20_enabled:
         db "A20 line is enabled", 0
@@ -165,7 +229,7 @@ section .boot
     str_setting_up_gdt:
         db "Setting up GDT...", 0
 
-    str_launching_protected_mode
+    str_launching_protected_mode:
         db "Launching protected mode and booting kernel...", 0
 
     ; Global Descriptor Table content
@@ -199,3 +263,6 @@ section .boot
     times 510-($-$$) db 0x90 ; Sector is 512 bytes long
     dw 0xaa55 ; End of sector needs magic bytes 55, aa
 
+; Fill with As for now
+section .kernel:
+    times 512 db 0x90
