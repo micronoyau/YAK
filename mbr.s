@@ -206,7 +206,7 @@ section .boot
             mov ss, ax
 
         ; Jump to kernel
-        jmp 0x7e00
+        jmp boot_end
 
         loop_main:
             jmp loop_main
@@ -260,4 +260,6 @@ section .boot
 
     times 510-($-$$) db 0x90 ; Sector is 512 bytes long
     dw 0xaa55 ; End of sector needs magic bytes 55, aa
+
+    boot_end:
 
