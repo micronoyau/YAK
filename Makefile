@@ -39,7 +39,7 @@ $(TARGET_DIR)/$(MBR).bin: $(TARGET_DIR)
 # Link kernel entry and kernel core into a binary file such that the only
 # instruction in kernel-entry is at the kernel entrypoint address mentionned in MBR
 $(TARGET_DIR)/$(KERNEL).bin: $(TARGET_DIR)/$(KERNEL)-entry.o $(KERNEL_RUST_OUT)
-	ld -o $@ -Ttet $(ENTRYPOINT) --oformat binary $^
+	ld -o $@ -Ttext $(ENTRYPOINT) --oformat binary $^
 
 $(TARGET_DIR)/$(KERNEL)-entry.o: $(KERNEL)-entry.s
 	nasm $< -f elf64 -o $@
