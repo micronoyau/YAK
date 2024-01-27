@@ -24,6 +24,8 @@ section .mbr
     mov bx, 0x7e00 ; Store 2nd stage bootloader at address es:bx -> 0x7e00 -> 0x81ff
     int 0x13
 
+    jmp 0x7e00
+
     times 510-($-$$) db 0x90 ; Sector is 512 bytes long
     dw 0xaa55 ; End of sector needs magic bytes 55, aa
 
