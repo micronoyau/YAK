@@ -24,10 +24,11 @@
 ; + https://os.phil-opp.com/paging-introduction/
 ; + Intel 64 developper manual
 
+; Has to be consistent with rust code
 %define PDPT_ADDR 0x200000
 %define STACK_ADDR 0x200000
 %define BOOTLOADER_SIZE 0x1000
-%define KERNBASE 0x800000
+%define KERNEL_BASE 0x800000
 
 [BITS 16]
 
@@ -93,8 +94,9 @@ section .boot
         mov dx, 0       ; Row | Column
         int 0x10
 
-        ; Wait roughly 1 second
-        mov ah, 0x86
+        ; Wait roughly 1 second --- less for debug
+        ; mov ah, 0x86
+        mov ah, 0x1
         mov cx, 0x10
         xor dx, dx
         int 0x15
@@ -266,7 +268,7 @@ section .boot
         inc dx
         out dx, ax
 
-        mov edi, KERNBASE ; Load address
+        mov edi, KERNEL_BASE ; Load address
         mov ebx, 0 ; Writting sectors
 
         ; Read all sectors
@@ -367,11 +369,12 @@ section .boot
         [BITS 64]
         main_64:
         call load_kernel
+        mov rdi, rax
 
-        ; Jump to kernel entrypoint
+        ; Jump to kernel entrypoint with argument in rax : size of kernel in sectors (512 B)
         mov rax, KERNEL_ENTRY_OFFSET
-        add rax, KERNBASE
-        jmp rax
+        add rax, KERNEL_BASE
+        call rax
 
         loop_main:
             jmp loop_main

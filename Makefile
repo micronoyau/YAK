@@ -18,6 +18,7 @@ all: run
 
 clean:
 	rm -rf $(TARGET_DIR)/*
+	cd $(KERNEL_DIR) && cargo clean
 
 run: build
 	qemu-system-x86_64 -drive file=$(BOOTABLE_IMAGE),format=raw
