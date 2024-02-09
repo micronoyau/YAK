@@ -24,20 +24,28 @@
 ; + https://os.phil-opp.com/paging-introduction/
 ; + Intel 64 developper manual
 
-; Has to be consistent with rust code
+; temporary
+%define KERNEL_SIZE 0x3000
+
+; Defined at compile time :
+; %define LOADER_SIZE ???
+; %define BOOTLOADER_SIZE ???
+
+; Has to be consistent
 %define PDPT_ADDR 0x200000
 %define STACK_ADDR 0x200000
-%define BOOTLOADER_SIZE 0x1000
-%define KERNEL_BASE 0x800000
+
+extern load_kernel
+global load_sectors
+global _start
 
 [BITS 16]
 
 ; MBR loads the second stage bootloader at 0x7e00
-org 0x7e00
+; org 0x7e00
 
 section .boot
-
-    jmp main
+    jmp _start
 
     ; Args : string
     strlen:
@@ -228,57 +236,53 @@ section .boot
 
 
     [BITS 64]
-    ; Load kernel from disk using ATA PIO
-    ; Arg : drive number
-    load_kernel:
+    ; Uses ATA PIO mode
+    ; Load [rsi] sectors on disk at sector offset [rdi] on disk (1 sector = 512 MiB)
+    ; at address [rdx]
+    ; load_sectors(int offset_disk, int count, void* addr)
+    load_sectors:
         push rbp
         mov rbp, rsp
-
-        ; How much sectors does the kernel take ?
-        mov rax, KERNEL_MEMSIZE
-        shr rax, 9
-        inc rax
-        push rax ; Save result on stack
+        push rdx ; Save address
 
         ; Write number of sectors to read to port 0x1f2 (sector count register)
+        mov eax, esi
         mov dx, 0x1f2
         out dx, eax
 
-        ; LBA addressing : LBAlo = right after bootloader
-        ; LBAmid and LBAhi are null (0x1f3 to 0x1f5)
+        ; LBA addressing
         inc dx
-        xor rax, rax
-        mov ax, BOOTLOADER_SIZE
-        shr ax, 9 ; Sector count
-        out dx, ax
-
-        xor ax, ax
+        mov rax, rdi
+        out dx, al
         inc dx
-        out dx, ax
+        shr rax, 8
+        out dx, al
         inc dx
-        out dx, ax
+        shr rax, 8
+        out dx, al
 
         ; Choose master drive (0x1f6)
-        mov ax, 0x40
         inc dx
+        mov ax, 0x40
         out dx, ax
 
         ; READ SECTORS command (0x1f7)
-        mov ax, 0x20
         inc dx
+        mov ax, 0x20
         out dx, ax
 
-        mov edi, KERNEL_BASE ; Load address
-        mov ebx, 0 ; Writting sectors
+        pop rax
+        mov edi, eax ; Load address
+        xor ebx, ebx ; Written sectors so far
 
         ; Read all sectors
-        load_kernel_loop:
+        load_sectors_loop:
             or dl, 0x7
             ; Wait for busy flag to be cleared
-            load_kernel_wait_sector:
+            load_sectors_wait:
                 in al, dx
                 test al, 0x80
-                jnz load_kernel_wait_sector
+                jnz load_sectors_wait
 
             and dl, 0xf0 ; Read from data port
             ; Load one sector (256 words)
@@ -287,17 +291,16 @@ section .boot
 
             inc ebx
 
-            cmp ebx, [rsp]
-            jb load_kernel_loop
+            cmp ebx, esi
+            jb load_sectors_loop
 
-        pop rax
         pop rbp
         ret
 
 
     [BITS 16]
     ; Main procedure
-    main:
+    _start:
         push dx ; Save drive number
 
         push str_welcome
@@ -368,12 +371,19 @@ section .boot
 
         [BITS 64]
         main_64:
-        call load_kernel
-        mov rdi, rax
+        ; Debug
+        ; mov rdi, 8
+        ; mov rsi, 1
+        ; mov rdx, 0x800000
+        ; call test_load
 
-        ; Jump to kernel entrypoint with argument in rax : size of kernel in sectors (512 B)
-        mov rax, KERNEL_ENTRY_OFFSET
-        add rax, KERNEL_BASE
+        mov rdi, BOOTLOADER_SIZE
+        mov rsi, KERNEL_SIZE
+        shr rsi, 9
+        inc rsi
+        call load_kernel
+
+        ; Jump to kernel entrypoint
         call rax
 
         loop_main:
@@ -425,5 +435,5 @@ section .boot
 
     ; Fill with junk to be aligned
     boot_end:
-        times BOOTLOADER_SIZE-($-$$)-512 db 0x00
+        times BOOTLOADER_SIZE*0x200-($-$$)-LOADER_SIZE-512 db 0x00
 

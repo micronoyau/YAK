@@ -7,6 +7,9 @@
 ; The system therefore boots at address 0x7c00
 org 0x7c00
 
+; Defined at compile time :
+; %define BOOTLOADER_SIZE ???
+
 section .mbr
     ; First initialize segment registers
     jmp 0x00:0x7c05 ; Set cs = 0
@@ -17,7 +20,7 @@ section .mbr
     mov es, ax
 
     mov ah, 2 ; CHS reading
-    mov al, 2 ; We want to read 2 sectors
+    mov al, BOOTLOADER_SIZE ; Amount of sectors to read
     mov ch, 0 ; First cylinder
     mov cl, 2 ; Second sector (starts from 1)
     mov dh, 0 ; dh=Head=0, dl = Drive number
@@ -26,6 +29,6 @@ section .mbr
 
     jmp 0x7e00
 
-    times 510-($-$$) db 0x90 ; Sector is 512 bytes long
+    times 510-($-$$) db 0x00 ; Sector is 512 bytes long
     dw 0xaa55 ; End of sector needs magic bytes 55, aa
 
