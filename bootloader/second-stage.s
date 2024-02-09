@@ -58,7 +58,7 @@ section .boot
 
         strlen_loop:
             mov dl, byte [ds:si] ; ds should be 0
-            cmp dl, 0
+            test dl, dl
             jz strlen_end
             inc cx
             inc si
@@ -142,14 +142,14 @@ section .boot
         ; Sucess
         push str_A20_enabled
         call print_wait_bios
-        mov ax, 0
+        xor ax, ax
         jmp test_a20_end
 
         ; Fail
         print_A20_disabled:
             push str_A20_disabled
             call print_wait_bios
-            mov ax, 1
+            inc ax
 
         test_a20_end:
             pop ds
@@ -307,8 +307,8 @@ section .boot
         call print_wait_bios
 
         call test_a20
-        cmp ax, 0
-        jne loop_main
+        test ax, ax
+        jnz loop_main
 
         push str_setting_up_gdt
         call print_wait_bios
@@ -371,17 +371,15 @@ section .boot
 
         [BITS 64]
         main_64:
-        ; Debug
-        ; mov rdi, 8
-        ; mov rsi, 1
-        ; mov rdx, 0x800000
-        ; call test_load
-
         mov rdi, BOOTLOADER_SIZE
         mov rsi, KERNEL_SIZE
         shr rsi, 9
         inc rsi
         call load_kernel
+
+        ; On failure, loops indifinetely
+        test rax, rax
+        jz loop_main
 
         ; Jump to kernel entrypoint
         call rax

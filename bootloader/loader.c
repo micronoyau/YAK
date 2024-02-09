@@ -19,6 +19,8 @@
  * +----------------------+
  */
 
+// Where to load the file from disk (not to be confused with loaded segments,
+// whose location is defined entirely by the ELF PHT)
 #define KERNEL_FILE_ADDR 0x100000
 #define PT_LOAD 0x01
 
@@ -78,6 +80,9 @@ void memcpy(void* dst_, void* src_, long sz) {
 }
 
 int load_segment(Elf64_Phdr* phdr) {
+    /*
+     * Loads an entire segment in memory at physical address phdr->p_p_addr
+     */
     void* offset = (void*) (KERNEL_FILE_ADDR + entry_to_long((char*)phdr->p_offset, 8));
     void* paddr = (void*) entry_to_long((char*)phdr->p_paddr, 8);
     long memsz = entry_to_long((char*)phdr->p_memsz, 8);
@@ -97,9 +102,11 @@ void* load_kernel(int bootloader_size, int kernel_size) {
      * [bootloader_size] : size of bootloader, in sector counts (should be padded).
      * [kernel_size] : size of kernel, in sector counts.
      * Loads kernel in memory :
+     * + loads binary file in memory
      * + fetches elf header
-     * + loads loadable segments at specified virtual addresses
+     * + loads loadable segments at specified physical addresses
      * + returns entrypoint address
+     * If an error occurs, returns 0.
      */
     load_sectors(bootloader_size, kernel_size, (void*)KERNEL_FILE_ADDR);
     Elf64_Ehdr* header = (Elf64_Ehdr*)KERNEL_FILE_ADDR;
