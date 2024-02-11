@@ -1,0 +1,5 @@
+CompileFlags:
+  Add: ["-I../includes/",
+        "-nostdlib",
+        "-Wno-builtin-declaration-mismatch",
+        "-Wno-incompatible-library-redeclaration"]
