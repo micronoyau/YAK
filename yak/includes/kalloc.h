@@ -1,0 +1,2 @@
+void kinit();
+void* kalloc();
