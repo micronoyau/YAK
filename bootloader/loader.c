@@ -21,7 +21,7 @@
 
 // Where to load the file from disk (not to be confused with loaded segments,
 // whose location is defined entirely by the ELF PHT)
-#define KERNEL_FILE_ADDR 0x100000
+#define KERNEL_FILE_ADDR 0x300000
 #define PT_LOAD 0x01
 
 extern void load_sectors(int offset_disk, int count, void* addr);
@@ -58,7 +58,9 @@ long entry_to_long(char* entry, int size) {
     long res = 0;
     for (int i=size-1; i>=0; i--){
         res <<= 8;
-        res |= entry[i];
+        // Compiler translates as movsx, but we dont want
+        // the sign extension.
+        res |= (0xff & entry[i]);
     }
     return res;
 }
@@ -68,14 +70,16 @@ void memcpy(void* dst_, void* src_, long sz) {
     long* src = (long*) src_;
     long* dst = (long*) dst_;
     long i;
-    for (i=0; i<sz; i+=8) {
+    for (i=0; i<sz>>3; i++) {
         *(dst+i) = *(src+i);
     }
-    i -= 8;
+    i*=8;
 
-    // Remaining bytes
-    for (long j=0; j<sz%8; j++) {
-        *(dst+i+j) = *(src+i+j);
+    // Remaining bytes : copy byte per byte
+    char* src2 = (char*) src;
+    char* dst2 = (char*) dst;
+    for (int j=0; j<sz%8; j++) {
+        *(dst2+i+j) = *(src2+i+j);
     }
 }
 

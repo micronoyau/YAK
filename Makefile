@@ -8,7 +8,7 @@ SECOND_STAGE_LOADER=loader
 SECOND_STAGE_LINKER_SCRIPT=link.ld
 BOOTLOADER=bootloader
 # Size of entire bootloader (in sector count)
-BOOTLOADER_SIZE=8
+BOOTLOADER_SIZE=10
 
 KERNEL=yak
 
@@ -71,12 +71,19 @@ section_size = $(shell readelf -W -S $(1) \
 				| sed 's/\( \)* / /g' \
 				| cut -d ' ' -f8)
 
-$(TARGET_DIR)/$(SECOND_STAGE).o: $(TARGET_DIR) $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o
-	$(eval TEXT_SIZE = $(call section_size,$(TARGET_DIR)/$(SECOND_STAGE_LOADER).o,.text))
-	$(eval DATA_SIZE = $(call section_size,$(TARGET_DIR)/$(SECOND_STAGE_LOADER).o,.data))
-	$(eval BSS_SIZE = $(call section_size,$(TARGET_DIR)/$(SECOND_STAGE_LOADER).o,.bss))
-	nasm -d LOADER_SIZE=$$((0x$(TEXT_SIZE) + 0x$(DATA_SIZE) + 0x$(BSS_SIZE))) \
+# memory_elf_size = $(shell readelf -W -l yak \
+# 					| grep LOAD \
+# 					| sed 's/\( \)* / /g' \
+# 					| cut -d ' ' -f7 \
+# 					| python -c 'from sys import stdin; print(sum(map(lambda x: int(x, base=16), stdin)))')
+
+$(TARGET_DIR)/$(SECOND_STAGE).o: $(TARGET_DIR) $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o $(TARGET_DIR)/$(KERNEL)
+	$(eval LOADER_TEXT_SIZE = $(call section_size,$(TARGET_DIR)/$(SECOND_STAGE_LOADER).o,.text))
+	$(eval LOADER_DATA_SIZE = $(call section_size,$(TARGET_DIR)/$(SECOND_STAGE_LOADER).o,.data))
+	$(eval LOADER_BSS_SIZE = $(call section_size,$(TARGET_DIR)/$(SECOND_STAGE_LOADER).o,.bss))
+	nasm -d LOADER_SIZE=$$((0x$(LOADER_TEXT_SIZE) + 0x$(LOADER_DATA_SIZE) + 0x$(LOADER_BSS_SIZE))) \
 		-d BOOTLOADER_SIZE=$(BOOTLOADER_SIZE) \
+		-d KERNEL_SIZE=$(shell ls -l $(TARGET_DIR)/$(KERNEL) | cut -d ' ' -f5) \
 		-f elf64 \
 		-o $@ \
 		$(BOOTLOADER_DIR)/$(SECOND_STAGE).s
@@ -85,6 +92,7 @@ $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o: $(TARGET_DIR)
 	gcc -c \
 		-nostdlib \
 		-o $@ \
+		-Wno-incompatible-library-redeclaration \
 		$(BOOTLOADER_DIR)/$(SECOND_STAGE_LOADER).c
 
 #
@@ -92,7 +100,11 @@ $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o: $(TARGET_DIR)
 #
 
 $(TARGET_DIR)/$(KERNEL):
-	gcc -nostdlib -o $@ -I$(KERNEL_DIR)/includes/ $(KERNEL_DIR)/src/*
+	gcc -o $@ \
+		-I$(KERNEL_DIR)/includes/ \
+		-nostdlib \
+		-Wno-builtin-declaration-mismatch \
+		$(KERNEL_DIR)/src/*
 
 #
 # Misc

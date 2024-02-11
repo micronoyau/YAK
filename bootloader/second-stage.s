@@ -24,12 +24,10 @@
 ; + https://os.phil-opp.com/paging-introduction/
 ; + Intel 64 developper manual
 
-; temporary
-%define KERNEL_SIZE 0x3000
-
 ; Defined at compile time :
 ; %define LOADER_SIZE ???
 ; %define BOOTLOADER_SIZE ???
+; %define KERNEL_SIZE ???
 
 ; Has to be consistent
 %define PDPT_ADDR 0x200000
