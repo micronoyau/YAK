@@ -1,4 +1,5 @@
 #include "memlayout.h"
+#include "utils.h"
 
 struct FreeFrame {
     struct FreeFrame* next;
@@ -28,3 +29,14 @@ void* kalloc() {
     return ret;
 }
 
+int kfree(void* addr) {
+    if (!is_aligned(addr)) {
+        return 1;
+    }
+
+    struct FreeFrame* new_top = (struct FreeFrame*) addr;
+    new_top->next = top;
+    top = new_top;
+
+    return 0;
+}

@@ -1,3 +1,5 @@
+#include "memlayout.h"
+
 void memcpy(void* dst_, void* src_, long sz) {
     // 64 bit machine : can copy 8 by 8
     long* src = (long*) src_;
@@ -14,4 +16,8 @@ void memcpy(void* dst_, void* src_, long sz) {
     for (int j=0; j<sz%8; j++) {
         *(dst2+i+j) = *(src2+i+j);
     }
+}
+
+int is_aligned(void* addr) {
+    return ((long)addr % FRAME_SIZE == 0);
 }

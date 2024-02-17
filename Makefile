@@ -92,8 +92,9 @@ $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o: $(TARGET_DIR)
 	gcc -c \
 		-nostdlib \
 		-o $@ \
-		-Wno-incompatible-library-redeclaration \
+		-Wno-builtin-declaration-mismatch \
 		$(BOOTLOADER_DIR)/$(SECOND_STAGE_LOADER).c
+		# -Wno-incompatible-library-redeclaration \
 
 #
 # Kernel
