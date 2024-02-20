@@ -1,4 +1,4 @@
-#include "memlayout.h"
+#include "kalloc.h"
 
 void memcpy(void* dst_, void* src_, long sz) {
     // 64 bit machine : can copy 8 by 8
@@ -15,6 +15,12 @@ void memcpy(void* dst_, void* src_, long sz) {
     char* dst2 = (char*) dst;
     for (int j=0; j<sz%8; j++) {
         *(dst2+i+j) = *(src2+i+j);
+    }
+}
+
+void memset(void* dst, char content, long sz) {
+    for (long i=0; i<sz; i++) {
+        *((char*)dst + i) = content;
     }
 }
 

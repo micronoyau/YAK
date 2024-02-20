@@ -27,7 +27,12 @@ run: build
 #
 
 debug: build
-	qemu-system-x86_64 -drive file=$(BOOTABLE_IMAGE),format=raw -S -gdb tcp::1234 &
+	qemu-system-x86_64 \
+		-drive file=$(BOOTABLE_IMAGE),format=raw \
+		-S \
+		-gdb tcp::1234 \
+		-m 4G \
+		&
 	gdb $(OUT) \
 		-ex "target remote localhost:1234" \
 		-ex "set architecture i8086" \
@@ -105,6 +110,8 @@ $(TARGET_DIR)/$(KERNEL):
 		-I$(KERNEL_DIR)/includes/ \
 		-nostdlib \
 		-Wno-builtin-declaration-mismatch \
+		-O1 \
+		-foptimize-sibling-calls \
 		$(KERNEL_DIR)/src/*
 
 #

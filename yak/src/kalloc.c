@@ -1,5 +1,6 @@
-#include "memlayout.h"
+#include "kvm.h"
 #include "utils.h"
+#include "kalloc.h"
 
 struct FreeFrame {
     struct FreeFrame* next;
