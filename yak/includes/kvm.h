@@ -11,9 +11,15 @@
  * |                           |
  * |       Free memory         |
  * |                           |
- * +---------------------------+ <-- FREE_MEM_BASE : 0x500000 (5 MiB)
- * |   Loaded kernel segments  |
- * +---------------------------+ <-- KERNEL_SEGMENTS :  0x400000 (4 MiB)
+ * +---------------------------+ <-- KERNEL_TOP (page-aligned)
+ * |           .bss            | RW  `.
+ * +---------------------------+       `.
+ * |           .data           | RW     |
+ * +---------------------------+        | --> Kernel segments loaded in memory
+ * |          .rodata          | R      |
+ * +---------------------------+       ,`
+ * |           .text           | RX  .`
+ * +---------------------------+ <-- KERNEL_BASE (page-aligned)
  * |         ???????           |
  * +---------------------------+
  * Note : when entering the kernel, the bootloader gives the kernel its own
@@ -23,11 +29,14 @@
  * Starting from FREE_MEM_TOP, virtual mapping.
  */
 
-// Should be in elf symbols to be linked against kernel entrypoint
 #define KERNEL_STACK_SIZE 0x1000
-
-#define KERNEL_SEGMENTS 0x400000
-#define FREE_MEM_BASE 0x500000
 #define FREE_MEM_TOP 0x20000000 // 512 MiB
+
+// Set by linker
+extern char KERNEL_BASE[];
+extern char KERNEL_TOP[];
+extern char RODATA_SECTION_START[];
+extern char DATA_SECTION_START[];
+extern char BSS_SECTION_START[];
 
 void kvminit();

@@ -11,6 +11,7 @@ BOOTLOADER=bootloader
 BOOTLOADER_SIZE=10
 
 KERNEL_OBJS=$(TARGET_DIR)/kernel_objs
+KERNEL_LINKER_SCRIPT=$(KERNEL_DIR)/kernel.ld
 KERNEL=yak
 
 BOOTABLE_IMAGE=$(TARGET_DIR)/bootable_kernel
@@ -100,7 +101,8 @@ $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o: $(TARGET_DIR)
 #
 
 $(TARGET_DIR)/$(KERNEL): $(patsubst $(KERNEL_DIR)/src/%.c,$(KERNEL_OBJS)/%.o,$(shell echo $(KERNEL_DIR)/src/*.c)) $(patsubst $(KERNEL_DIR)/src/%.s,$(KERNEL_OBJS)/%.o,$(shell echo $(KERNEL_DIR)/src/*.s))
-	ld $(KERNEL_OBJS)/*.o -o $@
+	# ld $(KERNEL_OBJS)/*.o -o $@
+	ld -T$(KERNEL_LINKER_SCRIPT) $(KERNEL_OBJS)/*.o -o $@
 
 $(KERNEL_OBJS)/%.o: $(KERNEL_DIR)/src/%.c $(KERNEL_OBJS)
 	gcc -c \
@@ -110,6 +112,7 @@ $(KERNEL_OBJS)/%.o: $(KERNEL_DIR)/src/%.c $(KERNEL_OBJS)
 		-Wno-builtin-declaration-mismatch \
 		-O1 \
 		-foptimize-sibling-calls \
+		-fno-asynchronous-unwind-tables \
 		$<
 
 $(KERNEL_OBJS)/%.o: $(KERNEL_DIR)/src/%.s $(KERNEL_OBJS)

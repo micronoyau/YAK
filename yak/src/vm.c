@@ -211,10 +211,19 @@ int vmmap(void* pml4, void* va, void* pa, long size, char rw, char us, long xd) 
 }
 
 void set_cr3(void* addr) {
-    asm volatile("mov %0, %%rax\n\t"
-                 "mov %%rax, %%cr3"
+    asm volatile("mfence\n\t"
+                 "mov %0, %%rax\n\t"
+                 "mov %%rax, %%cr3\n\t"
+                 "mfence"
                  :
                  : "r" (addr));
+}
+
+void enable_efer_nxe() {
+    asm volatile("mov $0xc0000080, %rcx\n\t"
+                 "rdmsr\n\t"
+                 "or $0x800, %rax\n\t"
+                 "wrmsr\n\t");
 }
 
 void new_PTE(void* addr, char rw, char us, long xd, PPN ppn) {

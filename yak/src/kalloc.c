@@ -14,7 +14,7 @@ void kinit() {
 
     // 8-byte pointers so we need to step by FRAME_SIZE/8
     for(frame = (struct FreeFrame*) FREE_MEM_TOP-FRAME_SIZE;
-        frame >= (struct FreeFrame*) FREE_MEM_BASE;
+        frame >= (struct FreeFrame*) KERNEL_TOP;
         frame -= (FRAME_SIZE>>3))
     {
         frame->next = next;

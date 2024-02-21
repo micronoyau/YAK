@@ -72,6 +72,10 @@ int vmmap(void* pml4, void* va, void* pa, long size, char rw, char us, long xd);
  */
 void set_cr3(void* addr);
 /*
+ * Set NXE bit of the EFER register to 1 (enable XD feature)
+ */
+void enable_efer_nxe();
+/*
  * Write a PTE at address [addr]
  */
 void new_PTE(void* addr, char rw, char us, long xd, PPN ppn);

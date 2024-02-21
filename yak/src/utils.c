@@ -27,3 +27,10 @@ void memset(void* dst, char content, long sz) {
 int is_aligned(void* addr) {
     return ((long)addr % FRAME_SIZE == 0);
 }
+
+void* align_up(void* addr) {
+    if(is_aligned(addr)) {
+        return addr;
+    }
+    return (void*)(((long)addr / FRAME_SIZE + 1) * FRAME_SIZE);
+}
