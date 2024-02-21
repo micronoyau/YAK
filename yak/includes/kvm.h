@@ -7,7 +7,7 @@
  * |      Kernel stack 0       |    |
  * +---------------------------+   ,`
  * |         Trampoline        | .`
- * +---------------------------+`<-- FREE_MEM_TOP : 0x40000000 (1 GiB)
+ * +---------------------------+`<-- FREE_MEM_TOP : 0x20000000 (512 MiB)
  * |                           |
  * |       Free memory         |
  * |                           |
@@ -22,6 +22,9 @@
  * From 0x0 to FREE_MEM_TOP : identity mapping.
  * Starting from FREE_MEM_TOP, virtual mapping.
  */
+
+// Should be in elf symbols to be linked against kernel entrypoint
+#define KERNEL_STACK_SIZE 0x1000
 
 #define KERNEL_SEGMENTS 0x400000
 #define FREE_MEM_BASE 0x500000

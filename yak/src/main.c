@@ -2,11 +2,11 @@
 #include "kalloc.h"
 #include "kvm.h"
 
-void _start() {
+// Kernel stack in .bss section, should be NX
+char stack[KERNEL_STACK_SIZE];
+
+void kernel_main() {
     kinit();
-    void* frame = kalloc();
-    memcpy(frame, "micronoyau", 10);
-    kfree(frame);
     kvminit();
     while(1) { }
 }

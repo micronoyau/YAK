@@ -68,6 +68,10 @@ typedef long TBA; // Table Base Address
  */
 int vmmap(void* pml4, void* va, void* pa, long size, char rw, char us, long xd);
 /*
+ * Set CR3 register to setup new page table
+ */
+void set_cr3(void* addr);
+/*
  * Write a PTE at address [addr]
  */
 void new_PTE(void* addr, char rw, char us, long xd, PPN ppn);

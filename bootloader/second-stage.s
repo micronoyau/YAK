@@ -164,7 +164,7 @@ section .boot
 
 
     [BITS 32]
-    ; Stack : 0x0fffff --> 0x000000 (1 MiB)
+    ; Stack : 0x1fffff --> 0x100000 (1 MiB)
     setup_stack:
         ; Save return address in eax
         pop eax
@@ -380,7 +380,7 @@ section .boot
         jz loop_main
 
         ; Jump to kernel entrypoint
-        call rax
+        jmp rax
 
         loop_main:
             jmp loop_main

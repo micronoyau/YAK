@@ -10,7 +10,7 @@
  * | 2nd stage bootloader |`-,
  * |      (assembly)      |  |
  * +----------------------+  |
- * |        padding       |  | --> BOOTLOADER_SIZE, definied in second-stage.s
+ * |        padding       |  | --> BOOTLOADER_SIZE, defined in second-stage.s
  * +----------------------+  |
  * |       this file      |  |
  * |       (C code)       | .`

@@ -66,6 +66,9 @@ int check_vmmap(void* pml4, void* va, void* pa, long size) {
                 continue;
             }
 
+            // Else, we need less, so it should be enough
+            return 0;
+
         // We need a gigapage but the matching PDPT entry already exists
         } else if (size >= GIGAPAGE_SIZE
                    && (long)va % GIGAPAGE_SIZE == 0
@@ -91,6 +94,9 @@ int check_vmmap(void* pml4, void* va, void* pa, long size) {
                 size -= MEGAPAGE_SIZE;
                 continue;
             }
+
+            // Else, we need less, so it should be enough
+            return 0;
 
         // We need a megapage but the matching PD entry already exists
         } else if (size >= MEGAPAGE_SIZE
@@ -202,6 +208,13 @@ int vmmap(void* pml4, void* va, void* pa, long size, char rw, char us, long xd) 
         return -1;
 
     return vmmap_core(pml4, va, pa, size, rw, us, xd);
+}
+
+void set_cr3(void* addr) {
+    asm volatile("mov %0, %%rax\n\t"
+                 "mov %%rax, %%cr3"
+                 :
+                 : "r" (addr));
 }
 
 void new_PTE(void* addr, char rw, char us, long xd, PPN ppn) {

@@ -10,6 +10,7 @@ BOOTLOADER=bootloader
 # Size of entire bootloader (in sector count)
 BOOTLOADER_SIZE=10
 
+KERNEL_OBJS=$(TARGET_DIR)/kernel_objs
 KERNEL=yak
 
 BOOTABLE_IMAGE=$(TARGET_DIR)/bootable_kernel
@@ -40,7 +41,7 @@ debug: build
 		-ex "c" \
 
 #
-# Put all the pieces together
+# Put bootloader and kernel in a single bootable image
 #
 
 build: $(TARGET_DIR)/$(BOOTLOADER) $(TARGET_DIR)/$(KERNEL)
@@ -67,7 +68,6 @@ $(TARGET_DIR)/$(SECOND_STAGE).bin: $(TARGET_DIR)/$(SECOND_STAGE).o $(TARGET_DIR)
 		-o $@ \
 		$^
 	
-
 # Compute size of sections to be added in bootloader and give this information
 # to nasm so that the resulting object is of size BOOTLOADER_SIZE as defined in
 # $(SECOND_STAGE).s
@@ -75,12 +75,6 @@ section_size = $(shell readelf -W -S $(1) \
 				| grep " $(2)" \
 				| sed 's/\( \)* / /g' \
 				| cut -d ' ' -f8)
-
-# memory_elf_size = $(shell readelf -W -l yak \
-# 					| grep LOAD \
-# 					| sed 's/\( \)* / /g' \
-# 					| cut -d ' ' -f7 \
-# 					| python -c 'from sys import stdin; print(sum(map(lambda x: int(x, base=16), stdin)))')
 
 $(TARGET_DIR)/$(SECOND_STAGE).o: $(TARGET_DIR) $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o $(TARGET_DIR)/$(KERNEL)
 	$(eval LOADER_TEXT_SIZE = $(call section_size,$(TARGET_DIR)/$(SECOND_STAGE_LOADER).o,.text))
@@ -105,14 +99,23 @@ $(TARGET_DIR)/$(SECOND_STAGE_LOADER).o: $(TARGET_DIR)
 # Kernel
 #
 
-$(TARGET_DIR)/$(KERNEL):
-	gcc -o $@ \
+$(TARGET_DIR)/$(KERNEL): $(patsubst $(KERNEL_DIR)/src/%.c,$(KERNEL_OBJS)/%.o,$(shell echo $(KERNEL_DIR)/src/*.c)) $(patsubst $(KERNEL_DIR)/src/%.s,$(KERNEL_OBJS)/%.o,$(shell echo $(KERNEL_DIR)/src/*.s))
+	ld $(KERNEL_OBJS)/*.o -o $@
+
+$(KERNEL_OBJS)/%.o: $(KERNEL_DIR)/src/%.c $(KERNEL_OBJS)
+	gcc -c \
+		-o $@ \
 		-I$(KERNEL_DIR)/includes/ \
 		-nostdlib \
 		-Wno-builtin-declaration-mismatch \
 		-O1 \
 		-foptimize-sibling-calls \
-		$(KERNEL_DIR)/src/*
+		$<
+
+$(KERNEL_OBJS)/%.o: $(KERNEL_DIR)/src/%.s $(KERNEL_OBJS)
+	nasm -f elf64 \
+		-o $@ \
+		$<
 
 #
 # Misc
@@ -120,3 +123,6 @@ $(TARGET_DIR)/$(KERNEL):
 
 $(TARGET_DIR):
 	mkdir -p $(TARGET_DIR)
+
+$(KERNEL_OBJS): $(TARGET_DIR)
+	mkdir -p $(KERNEL_OBJS)
